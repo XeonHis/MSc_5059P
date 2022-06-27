@@ -123,4 +123,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# idea compile file
 .idea/
+
+# realsense raw data and dataset
+data/
+data/processed/
+
+# demo code
+data_process/demo/
+
+# test code dir
+test/
