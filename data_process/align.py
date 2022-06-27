@@ -1,15 +1,7 @@
-"""
-Align depth info into color picture
-"""
-# First import library
 import pyrealsense2 as rs
-# Import Numpy for easy array manipulation
 import numpy as np
-# Import OpenCV for easy image rendering
 import cv2
-# Import argparse for command-line options
 import argparse
-# Import os.path for file path manipulation
 import os.path
 
 # Create object for parsing command-line options
@@ -22,6 +14,22 @@ args = parser.parse_args()
 # set default .bag file
 args.input = "../data/realsense_tissue_roll.bag"
 
+# directory for different categories store
+processed_data_dir = "../data/processed/"
+current_store_path = processed_data_dir + args.input.split("/")[-1].split(".")[0]
+
+# for depth image store, [r,g,b,depth]
+depth_store_dir = current_store_path + "/with_depth"
+
+# for rgb image store, [r,g,b]
+rgb_store_dir = current_store_path + "/rgb"
+
+# create directory if not exists
+if not os.path.exists(current_store_path):
+    os.mkdir(current_store_path)
+    os.mkdir(depth_store_dir)
+    os.mkdir(rgb_store_dir)
+
 try:
     # Create pipeline
     pipeline = rs.pipeline()
@@ -32,11 +40,6 @@ try:
     # Tell config that we will use a recorded device from file to be used by the pipeline through playback.
     rs.config.enable_device_from_file(config, args.input)
 
-    # Configure the pipeline to stream the depth stream
-    # Change this parameters according to the recorded bag file resolution
-    # config.enable_stream(rs.stream.depth, rs.format.z16, 30)
-    # config.enable_stream(rs.stream.color, rs.format.bgr8, 30)
-
     # Start streaming from file
     profile = pipeline.start(config)
 
@@ -45,11 +48,6 @@ try:
     depth_scale = depth_sensor.get_depth_scale()
     print("Depth Scale is: ", depth_scale)
 
-    # We will be removing the background of objects more than
-    #  clipping_distance_in_meters meters away
-    clipping_distance_in_meters = 1  # 1 meter
-    clipping_distance = clipping_distance_in_meters / depth_scale
-
     # Create an align object
     # rs.align allows us to perform alignment of depth frames to others frames
     # The "align_to" is the stream type to which we plan to align depth frames.
@@ -57,13 +55,12 @@ try:
     align = rs.align(align_to)
 
     # Create opencv window to render image in
-    cv2.namedWindow("Depth Stream", cv2.WINDOW_AUTOSIZE)
-
-    # Create colorizer object: Colorizer filter generates color images based on input depth frame
-    # colorizer = rs.colorizer()
+    cv2.namedWindow("Color Stream with Depth", cv2.WINDOW_AUTOSIZE)
 
     # Streaming loop
+    i = 0
     while True:
+        i = i + 1
         # Get frameset of depth
         frames = pipeline.wait_for_frames()
 
@@ -71,35 +68,32 @@ try:
         aligned_frames = align.process(frames)
 
         # Get aligned frames
-        aligned_depth_frame = aligned_frames.get_depth_frame()  # aligned_depth_frame is a 640x480 depth image
+        aligned_depth_frame = aligned_frames.get_depth_frame()
         color_frame = aligned_frames.get_color_frame()
 
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
             continue
 
-        depth_image = np.asanyarray(aligned_depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+        depth_image = np.asanyarray(
+            aligned_depth_frame.get_data())  # [raw_depth_info], depth = raw_depth_info * Depth_Scale
+        color_image = np.asanyarray(color_frame.get_data())  # [r, g, b]
 
-        # Remove background - Set pixels further than clipping_distance to grey
-        grey_color = 153
-        depth_image_3d = np.dstack(
-            (depth_image, depth_image, depth_image))  # depth image is 1 channel, color is 3 channels
-        bg_removed = np.where((depth_image_3d <= 0), grey_color, color_image)
-
-        # Render images:
-        #   depth align to color on left
-        #   depth on right
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-        images = np.hstack((bg_removed, depth_colormap))
+        blended_image = np.dstack((color_image, depth_image))
+        blended_image_copy = blended_image.copy()
 
         # Render image in opencv window
-        cv2.imshow("Depth Stream", images)
+        cv2.imshow("Color Stream with Depth", blended_image_copy.astype(np.uint8))
         key = cv2.waitKey(1)
         # if pressed escape exit program
         if key == 27:
             cv2.destroyAllWindows()
             break
+        # press Enter to store image
+        if key == 13:
+            cv2.imwrite(depth_store_dir + "/frame_" + str(i) + ".png", blended_image)
+            cv2.imwrite(rgb_store_dir + "/frame_" + str(i) + ".png", color_image)
+            print("image at frame " + str(i) + " stored.")
 
 finally:
     pass
