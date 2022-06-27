@@ -133,3 +133,5 @@ data/processed/
 # demo code
 data_process/demo/
 
+# test code dir
+test/
