@@ -126,8 +126,10 @@ dmypy.json
 # idea compile file
 .idea/
 
-# realsense raw data
+# realsense raw data and dataset
 data/
+data/processed/
 
 # demo code
 data_process/demo/
+
