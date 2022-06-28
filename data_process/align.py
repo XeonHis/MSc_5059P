@@ -19,16 +19,20 @@ processed_data_dir = "../data/processed/"
 current_store_path = processed_data_dir + args.input.split("/")[-1].split(".")[0]
 
 # for depth image store, [r,g,b,depth]
-depth_store_dir = current_store_path + "/with_depth"
+with_depth_store_dir = current_store_path + "/with_depth"
 
 # for rgb image store, [r,g,b]
 rgb_store_dir = current_store_path + "/rgb"
 
+# for only depth image store, [depth]
+depth_store_dir = current_store_path + "/depth"
+
 # create directory if not exists
 if not os.path.exists(current_store_path):
     os.mkdir(current_store_path)
-    os.mkdir(depth_store_dir)
+    os.mkdir(with_depth_store_dir)
     os.mkdir(rgb_store_dir)
+    os.mkdir(depth_store_dir)
 
 try:
     # Create pipeline
@@ -91,8 +95,9 @@ try:
             break
         # press Enter to store image
         if key == 13:
-            cv2.imwrite(depth_store_dir + "/frame_" + str(i) + ".png", blended_image)
+            cv2.imwrite(with_depth_store_dir + "/frame_" + str(i) + ".png", blended_image)
             cv2.imwrite(rgb_store_dir + "/frame_" + str(i) + ".png", color_image)
+            cv2.imwrite(depth_store_dir + "/frame_" + str(i) + ".png", blended_image[:, :, -1])
             print("image at frame " + str(i) + " stored.")
 
 finally:
