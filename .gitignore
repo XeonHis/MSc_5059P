@@ -135,3 +135,12 @@ data_process/demo/
 
 # test code dir
 test/
+
+# PointNet dataset
+PointNet/data
+
+# PointNet log
+PointNet/log
+
+
+utils/Area_1_WC_1.txt
