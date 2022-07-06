@@ -12,7 +12,7 @@ parser.add_argument("-i", "--input", type=str, help="Path to the bag file")
 # Parse the command line arguments to an object
 args = parser.parse_args()
 # set default .bag file
-args.input = "../data/realsense_tissue_roll.bag"
+args.input = "../data/raw/realsense_box.bag"
 
 # directory for different categories store
 processed_data_dir = "../data/processed/"
