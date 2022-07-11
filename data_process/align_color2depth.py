@@ -14,20 +14,20 @@ args = parser.parse_args()
 # set default .bag file
 args.input = "../data/raw/realsense_box.bag"
 
-# directory for different categories store
+# 根据物品名称确定储存的路径
 processed_data_dir = "../data/processed/"
 current_store_path = processed_data_dir + args.input.split("/")[-1].split(".")[0]
 
-# for depth image store, [r,g,b,depth]
+# rgbd图像储存路径
 with_depth_store_dir = current_store_path + "/with_depth"
 
-# for rgb image store, [r,g,b]
+# rgb图像储存路径
 rgb_store_dir = current_store_path + "/rgb"
 
-# for only depth image store, [depth]
+# depth图像储存路径
 depth_store_dir = current_store_path + "/depth"
 
-# create directory if not exists
+# 创建目录
 if not os.path.exists(current_store_path):
     os.mkdir(current_store_path)
     os.mkdir(with_depth_store_dir)
@@ -59,7 +59,7 @@ try:
     align = rs.align(align_to)
 
     # Create opencv window to render image in
-    cv2.namedWindow("Color Stream with Depth", cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("RGBD Stream", cv2.WINDOW_AUTOSIZE)
 
     # Streaming loop
     i = 0
