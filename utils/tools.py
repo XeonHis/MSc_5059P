@@ -1,6 +1,7 @@
 import numpy as np
 
 
+
 def generate_pure_depth_image(dirpath):
     import os
     import cv2
@@ -35,6 +36,9 @@ def convert_xyzrgb_to_txt(filepath):
 def build_dataset(dirpath, test_percent):
     import pandas as pd
     import os
+    from pandarallel import pandarallel
+    pandarallel.initialize(progress_bar=False)
+
     start = dirpath.index("_")
     end = dirpath.rfind("/")
     prefix = dirpath[start + 1:end] + "_"
@@ -43,7 +47,7 @@ def build_dataset(dirpath, test_percent):
             current_filepath = os.path.join(dirpath, file)
             save_filepath = os.path.join(dirpath, prefix + file.replace(".txt", ""))
             data = pd.read_csv(current_filepath, sep=' ')
-            result = data.apply(build_label, column_names=data.columns.values, axis=1)
+            result = data.parallel_apply(build_label, column_names=data.columns.values, axis=1)
             npy_data = np.array(result[['//X', 'Y', 'Z', 'R', 'G', 'B', 'label']])
             np.save(save_filepath, npy_data)
             print("####File ", save_filepath, " saved####")
@@ -91,6 +95,6 @@ if __name__ == '__main__':
     # pcd_visualize("../data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
     # read_npy(
     #     'E:\Code project\python\MSc_5059P\PointNet\data\custom\magroll_frame_880.npy')
-    # build_dataset("../data/processed/realsense_magroll/pcd", 0.3)
+    build_dataset("../data/processed/realsense_cup/pcd_test", 0.3)
     # split_train_test("../data/processed/realsense_magroll/pcd", 0.3)
     pass
