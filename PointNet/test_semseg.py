@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
-classes = ['bg', 'box']
+classes = ['bg', 'box', 'magroll']
 class2label = {cls: i for i, cls in enumerate(classes)}
 seg_classes = class2label
 seg_label_to_cat = {}
@@ -76,11 +76,11 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
-    NUM_CLASSES = 2
+    NUM_CLASSES = 3
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
-    root = 'data/custom/box/'
+    root = 'data/custom/'
 
     TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test',
                                                         block_points=NUM_POINT)

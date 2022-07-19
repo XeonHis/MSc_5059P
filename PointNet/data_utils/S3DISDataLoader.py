@@ -22,14 +22,14 @@ class S3DISDataset(Dataset):
         self.object_points, self.object_labels = [], []
         self.object_coord_min, self.object_coord_max = [], []
         num_point_all = []
-        labelweights = np.zeros(2)
+        labelweights = np.zeros(3)
 
         for file_name in tqdm(files_split, total=len(files_split)):
             object_path = os.path.join(data_root, file_name)
             object_data = np.load(object_path)  # xyzrgbl, N*7
             points, labels = object_data[:, 0:6], object_data[:, 6]  # xyzrgb, N*6; l, N
             # 直方图，统计各个类别的个数,range确定最小值和最大值（不包含）
-            tmp, _ = np.histogram(labels, range(3))
+            tmp, _ = np.histogram(labels, range(4))
             labelweights += tmp
             coord_min, coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]  # 坐标的3个最小值和最大值
             self.object_points.append(points), self.object_labels.append(labels)
@@ -115,9 +115,9 @@ class ScannetDatasetWholeScene():
             self.room_coord_min.append(coord_min), self.room_coord_max.append(coord_max)
         assert len(self.scene_points_list) == len(self.semantic_labels_list)
 
-        labelweights = np.zeros(2)
+        labelweights = np.zeros(3)
         for seg in self.semantic_labels_list:
-            tmp, _ = np.histogram(seg, range(3))
+            tmp, _ = np.histogram(seg, range(4))
             self.scene_points_num.append(seg.shape[0])
             labelweights += tmp
         labelweights = labelweights.astype(np.float32)

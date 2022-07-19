@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
-classes = ['bg', 'box']
+classes = ['bg', 'box', 'magroll']
 class2label = {cls: i for i, cls in enumerate(classes)}
 seg_classes = class2label
 seg_label_to_cat = {}
@@ -89,8 +89,9 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
-    root = 'data/custom/box/'
-    NUM_CLASSES = 2
+    # root = '../data/processed/realsense_magroll/pcd/npy'
+    root = 'data/custom'
+    NUM_CLASSES = 3
     NUM_POINT = args.npoint
     BATCH_SIZE = args.batch_size
 

@@ -32,34 +32,65 @@ def convert_xyzrgb_to_txt(filepath):
     # np.savetxt(filepath.replace("xyzrgb","txt"), data)
 
 
-def build_dataset(dirpath):
+def build_dataset(dirpath, test_percent):
     import pandas as pd
     import os
+    start = dirpath.index("_")
+    end = dirpath.rfind("/")
+    prefix = dirpath[start + 1:end] + "_"
     for file in os.listdir(dirpath):
         if file.endswith(".txt"):
             current_filepath = os.path.join(dirpath, file)
-            save_filepath = os.path.join(dirpath, file.replace(".txt", ""))
+            save_filepath = os.path.join(dirpath, prefix + file.replace(".txt", ""))
             data = pd.read_csv(current_filepath, sep=' ')
-            result = data.apply(build_label, axis=1)
+            result = data.apply(build_label, column_names=data.columns.values, axis=1)
             npy_data = np.array(result[['//X', 'Y', 'Z', 'R', 'G', 'B', 'label']])
             np.save(save_filepath, npy_data)
+            print("####File ", save_filepath, " saved####")
+    split_train_test(dirpath, test_percent)
 
 
-def build_label(series):
-    labels = ['bg', 'box']
+def build_label(series, column_names):
+    label_map = {'bg': 0, 'box': 1, 'magroll': 2, 'cup': 3}
+    labels = column_names[-2:]
+    # for label in labels:
+    #     assert label in series, label + ' not in data'
     for label in labels:
-        assert label in series, label + ' not in data'
-    if series['bg'] == 1:
-        series['label'] = 0
-    if series['box'] == 1:
-        series['label'] = 1
+        if series[label] == 1:
+            series['label'] = label_map.get(label)
     return series
+
+
+def split_train_test(dirpath, test_percent):
+    import os
+    import random
+    file_list = []
+    for file in os.listdir(dirpath):
+        if file.endswith(".npy"):
+            file_list.append(os.path.join(dirpath, file))
+    for i in range(int(len(file_list) * test_percent)):
+        i = random.randint(0, len(file_list) - 1)
+        temp = file_list[i].replace(".npy", "_test.npy")
+        os.rename(file_list[i], temp)
+
+
+def temp_tool(dirpath):
+    import os
+    start = dirpath.index("_")
+    end = dirpath.rfind("/")
+    prefix = dirpath[start + 1:end] + "_"
+    for file in os.listdir(dirpath):
+        if file.endswith(".npy"):
+            original_path = os.path.join(dirpath, file)
+            after_path = os.path.join(dirpath, prefix + file)
+            os.rename(original_path, after_path)
 
 
 if __name__ == '__main__':
     # generate_pure_depth_image("../data/processed/realsense_tissue_roll/with_depth")
     # pcd_visualize("../data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
-    read_npy(
-        "E:\Code project\python\Pointnet_Pointnet2_pytorch\data\s3dis\stanford_indoor3d\Area_1_WC_1.npy")
-    # build_dataset("../data/processed/realsense_box/pcd")
+    # read_npy(
+    #     'E:\Code project\python\MSc_5059P\PointNet\data\custom\magroll_frame_880.npy')
+    # build_dataset("../data/processed/realsense_magroll/pcd", 0.3)
+    # split_train_test("../data/processed/realsense_magroll/pcd", 0.3)
     pass

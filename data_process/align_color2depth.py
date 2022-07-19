@@ -12,7 +12,7 @@ parser.add_argument("-i", "--input", type=str, help="Path to the bag file")
 # Parse the command line arguments to an object
 args = parser.parse_args()
 # set default .bag file
-args.input = "../data/raw/realsense_box.bag"
+args.input = "../data/raw/realsense_cup.bag"
 
 # 根据物品名称确定储存的路径
 processed_data_dir = "../data/processed/"
@@ -59,7 +59,7 @@ try:
     align = rs.align(align_to)
 
     # Create opencv window to render image in
-    cv2.namedWindow("RGBD Stream", cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("Color Stream with Depth", cv2.WINDOW_AUTOSIZE)
 
     # Streaming loop
     i = 0
