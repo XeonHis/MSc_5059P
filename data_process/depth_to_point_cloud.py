@@ -4,7 +4,7 @@ import open3d as o3d
 from matplotlib import pyplot as plt
 import os
 
-file_dir = "../data/processed/realsense_cup"
+file_dir = "../data/processed/realsense_tissue_roll"
 rgb_image_dir = os.path.join(file_dir, "rgb")
 depth_image_dir = os.path.join(file_dir, "depth")
 pcd_image_dir = os.path.join(file_dir, "pcd")

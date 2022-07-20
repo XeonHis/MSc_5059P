@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
-classes = ['bg', 'box', 'magroll']
+classes = ['bg', 'box', 'magroll','cup']
 class2label = {cls: i for i, cls in enumerate(classes)}
 seg_classes = class2label
 seg_label_to_cat = {}
@@ -91,16 +91,16 @@ def main(args):
 
     # root = '../data/processed/realsense_magroll/pcd/npy'
     root = 'data/custom'
-    NUM_CLASSES = 3
+    NUM_CLASSES = len(classes)
     NUM_POINT = args.npoint
     BATCH_SIZE = args.batch_size
 
     print("start loading training data ...")
     TRAIN_DATASET = S3DISDataset(split='train', data_root=root, num_point=NUM_POINT,
-                                 block_size=0.5, sample_rate=1.0, transform=None)
+                                 block_size=0.2, sample_rate=1.0, transform=None)
     print("start loading test data ...")
     TEST_DATASET = S3DISDataset(split='test', data_root=root, num_point=NUM_POINT,
-                                block_size=0.5, sample_rate=1.0, transform=None)
+                                block_size=0.2, sample_rate=1.0, transform=None)
 
     trainDataLoader = torch.utils.data.DataLoader(TRAIN_DATASET, batch_size=BATCH_SIZE, shuffle=True, num_workers=0,
                                                   pin_memory=True, drop_last=True,
@@ -269,7 +269,7 @@ def main(args):
             iou_per_class_str = '------- IoU --------\n'
             for l in range(NUM_CLASSES):
                 iou_per_class_str += 'class %s weight: %.3f, IoU: %.3f \n' % (
-                    seg_label_to_cat[l] + ' ' * (14 - len(seg_label_to_cat[l])), labelweights[l - 1],
+                    seg_label_to_cat[l] + ' ' * (len(classes)+1 - len(seg_label_to_cat[l])), labelweights[l - 1],
                     total_correct_class[l] / float(total_iou_deno_class[l]))
 
             log_string(iou_per_class_str)

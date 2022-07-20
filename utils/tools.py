@@ -93,8 +93,8 @@ def temp_tool(dirpath):
 if __name__ == '__main__':
     # generate_pure_depth_image("../data/processed/realsense_tissue_roll/with_depth")
     # pcd_visualize("../data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
-    # read_npy(
-    #     'E:\Code project\python\MSc_5059P\PointNet\data\custom\magroll_frame_880.npy')
-    build_dataset("../data/processed/realsense_cup/pcd_test", 0.3)
+    read_npy(
+        'E:\Code project\python\MSc_5059P\PointNet\data\custom\cup_frame_1165_test.npy')
+    # build_dataset("../data/processed/realsense_cup/pcd", 0.3)
     # split_train_test("../data/processed/realsense_magroll/pcd", 0.3)
     pass

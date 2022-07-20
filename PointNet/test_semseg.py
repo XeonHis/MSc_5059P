@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
-classes = ['bg', 'box', 'magroll']
+classes = ['bg', 'box', 'magroll', 'cup']
 class2label = {cls: i for i, cls in enumerate(classes)}
 seg_classes = class2label
 seg_label_to_cat = {}
@@ -76,13 +76,13 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
-    NUM_CLASSES = 3
+    NUM_CLASSES = len(classes)
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
     root = 'data/custom/'
 
-    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test',
+    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=0.2, stride=0.1,
                                                         block_points=NUM_POINT)
     log_string("The number of test data is: %d" % len(TEST_DATASET_WHOLE_SCENE))
 
@@ -188,7 +188,7 @@ def main(args):
         iou_per_class_str = '------- IoU --------\n'
         for l in range(NUM_CLASSES):
             iou_per_class_str += 'class %s, IoU: %.3f \n' % (
-                seg_label_to_cat[l] + ' ' * (14 - len(seg_label_to_cat[l])),
+                seg_label_to_cat[l] + ' ' * (len(classes) + 1 - len(seg_label_to_cat[l])),
                 total_correct_class[l] / float(total_iou_deno_class[l]))
         log_string(iou_per_class_str)
         log_string('eval point avg class IoU: %f' % np.mean(IoU))

@@ -12,7 +12,7 @@ parser.add_argument("-i", "--input", type=str, help="Path to the bag file")
 # Parse the command line arguments to an object
 args = parser.parse_args()
 # set default .bag file
-args.input = "../data/raw/realsense_cup.bag"
+args.input = "../data/raw/realsense_tissue_roll.bag"
 
 # 根据物品名称确定储存的路径
 processed_data_dir = "../data/processed/"

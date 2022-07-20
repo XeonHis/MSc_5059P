@@ -8,11 +8,11 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(BASE_DIR)
 
 DATA_PATH = os.path.join(ROOT_DIR, 'data', 's3dis', 'Stanford3dDataset_v1.2_Aligned_Version')
-g_classes = ['bg', 'box', 'magroll']
+g_classes = ['bg', 'box', 'magroll', 'cup']
 g_class2label = {cls: i for i, cls in enumerate(g_classes)}
 g_class2color = {'box': [0, 255, 0],
                  'magroll': [0, 0, 255],
-                 'wall': [0, 255, 255],
+                 'cup': [0, 255, 255],
                  'beam': [255, 255, 0],
                  'column': [255, 0, 255],
                  'window': [100, 100, 255],
