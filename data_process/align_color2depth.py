@@ -89,11 +89,11 @@ try:
         # Render image in opencv window
         cv2.imshow("Color Stream with Depth", blended_image_copy.astype(np.uint8))
         key = cv2.waitKey(1)
-        # if pressed escape exit program
+        # Esc退出
         if key == 27:
             cv2.destroyAllWindows()
             break
-        # press Enter to store image
+        # Enter保存图片
         if key == 13:
             cv2.imwrite(with_depth_store_dir + "/frame_" + str(i) + ".png", blended_image)
             cv2.imwrite(rgb_store_dir + "/frame_" + str(i) + ".png", color_image)
