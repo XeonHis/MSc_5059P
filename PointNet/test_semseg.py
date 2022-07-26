@@ -20,15 +20,15 @@ ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
 classes = ['bg', 'box', 'magroll', 'cup', 'tissue_roll', 'umbrella', 'button', 'cupwithhandle', 'screwdriver']
-g_class2color = {'box': [0, 255, 0],
-                 'magroll': [0, 0, 255],
-                 'cup': [0, 255, 255],
-                 'tissue_roll': [255, 255, 0],
-                 'umbrella': [255, 0, 255],
-                 'button': [100, 100, 255],
-                 'cupwithhandle': [200, 200, 100],
-                 'screwdriver': [170, 120, 200],
-                 'bg': [50, 50, 50]}
+g_class2color = {'box': [0 / 255, 255 / 255, 0 / 255],
+                 'magroll': [0 / 255, 0 / 255, 255 / 255],
+                 'cup': [0 / 255, 255 / 255, 255 / 255],
+                 'tissue_roll': [255 / 255, 255 / 255, 0 / 255],
+                 'umbrella': [255 / 255, 0 / 255, 255 / 255],
+                 'button': [100 / 255, 100 / 255, 255 / 255],
+                 'cupwithhandle': [200 / 255, 200 / 255, 100 / 255],
+                 'screwdriver': [170 / 255, 120 / 255, 200 / 255],
+                 'bg': [50 / 255, 50 / 255, 50 / 255]}
 class2label = {cls: i for i, cls in enumerate(classes)}
 g_label2color = {classes.index(cls): g_class2color[cls] for cls in classes}
 seg_classes = class2label
@@ -91,7 +91,7 @@ def main(args):
 
     root = 'data/custom/test/'
 
-    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=0.2, stride=0.1,
+    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=1, stride=0.5,
                                                         block_points=NUM_POINT)
     log_string("The number of test data is: %d" % len(TEST_DATASET_WHOLE_SCENE))
 
@@ -122,8 +122,8 @@ def main(args):
             total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
             total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
             if args.visual:
-                fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.obj'), 'w')
-                fout_gt = open(os.path.join(visual_dir, scene_id[batch_idx] + '_gt.obj'), 'w')
+                fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.txt'), 'w')
+                fout_gt = open(os.path.join(visual_dir, scene_id[batch_idx] + '_gt.txt'), 'w')
 
             whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]
             whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]
@@ -184,11 +184,11 @@ def main(args):
                 color = g_label2color[pred_label[i]]
                 color_gt = g_label2color[whole_scene_label[i]]
                 if args.visual:
-                    fout.write('v %f %f %f %d %d %d\n' % (
+                    fout.write('%f %f %f %d %d %d\n' % (
                         whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color[0], color[1],
                         color[2]))
                     fout_gt.write(
-                        'v %f %f %f %d %d %d\n' % (
+                        '%f %f %f %d %d %d\n' % (
                             whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color_gt[0],
                             color_gt[1], color_gt[2]))
             if args.visual:
