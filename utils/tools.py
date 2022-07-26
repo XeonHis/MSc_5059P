@@ -27,8 +27,8 @@ def convert_xyzrgb_to_txt(filepath):
     import numpy as np
     data = np.loadtxt(filepath)
     data[:, 3:] = np.around(data[:, 3:] * 255)
-    # print(data)
-    # np.savetxt(filepath.replace("xyzrgb","txt"), data)
+    # print(raw_data)
+    # np.savetxt(filepath.replace("xyzrgb","txt"), raw_data)
 
 
 def temp_tool(dirpath):
@@ -44,8 +44,8 @@ def temp_tool(dirpath):
 
 
 if __name__ == '__main__':
-    # generate_pure_depth_image("../data/processed/realsense_tissue_roll/with_depth")
-    # pcd_visualize("../data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
+    # generate_pure_depth_image("../raw_data/processed/realsense_tissue_roll/with_depth")
+    # pcd_visualize("../raw_data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
     # read_npy(
-    #     'E:\Code project\python\MSc_5059P\PointNet\data\custom\cup_frame_1165_test.npy')
+    #     'E:\Code project\python\MSc_5059P\PointNet\raw_data\custom\cup_frame_1165_test.npy')
     pass

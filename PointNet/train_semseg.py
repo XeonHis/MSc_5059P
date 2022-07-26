@@ -54,21 +54,27 @@ def parse_args():
 
 
 def main(args):
-    def log_string(str):
-        logger.info(str)
-        print(str)
+    def log_string(log_info):
+        """
+        打印日志
+        :param log_info: 日志信息
+        :return: None
+        """
+        logger.info(log_info)
+        print(log_info)
 
-    '''HYPER PARAMETER'''
+    '''GPU'''
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    '''CREATE DIR'''
-    timestr = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
+    '''创建log目录'''
+    current_time = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
+    # log根目录
     experiment_dir = Path('./log/')
     experiment_dir.mkdir(exist_ok=True)
     experiment_dir = experiment_dir.joinpath('sem_seg')
     experiment_dir.mkdir(exist_ok=True)
     if args.log_dir is None:
-        experiment_dir = experiment_dir.joinpath(timestr)
+        experiment_dir = experiment_dir.joinpath(current_time)
     else:
         experiment_dir = experiment_dir.joinpath(args.log_dir)
     experiment_dir.mkdir(exist_ok=True)
@@ -156,8 +162,8 @@ def main(args):
 
     LEARNING_RATE_CLIP = 1e-5
     MOMENTUM_ORIGINAL = 0.1
-    MOMENTUM_DECCAY = 0.5
-    MOMENTUM_DECCAY_STEP = args.step_size
+    MOMENTUM_DECAY = 0.5
+    MOMENTUM_DECAY_STEP = args.step_size
 
     global_epoch = 0
     best_iou = 0
@@ -169,7 +175,7 @@ def main(args):
         log_string('Learning rate:%f' % lr)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
-        momentum = MOMENTUM_ORIGINAL * (MOMENTUM_DECCAY ** (epoch // MOMENTUM_DECCAY_STEP))
+        momentum = MOMENTUM_ORIGINAL * (MOMENTUM_DECAY ** (epoch // MOMENTUM_DECAY_STEP))
         if momentum < 0.01:
             momentum = 0.01
         print('BN momentum updated to: %f' % momentum)
