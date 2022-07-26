@@ -41,7 +41,6 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=16, help='Batch Size during training [default: 16]')
     parser.add_argument('--epoch', default=32, type=int, help='Epoch to run [default: 32]')
     parser.add_argument('--learning_rate', default=0.001, type=float, help='Initial learning rate [default: 0.001]')
-    parser.add_argument('--gpu', type=str, default='0', help='GPU to use [default: GPU 0]')
     parser.add_argument('--optimizer', type=str, default='Adam', help='Adam or SGD [default: Adam]')
     parser.add_argument('--log_dir', type=str, default=None, help='Log path [default: None]')
     parser.add_argument('--decay_rate', type=float, default=1e-4, help='weight decay [default: 1e-4]')
@@ -63,8 +62,8 @@ def main(args):
         logger.info(log_info)
         print(log_info)
 
-    '''GPU'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    '''GPU or CPU'''
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     '''创建log目录'''
     current_time = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
@@ -112,7 +111,7 @@ def main(args):
                                                   worker_init_fn=lambda x: np.random.seed(x + int(time.time())))
     testDataLoader = torch.utils.data.DataLoader(TEST_DATASET, batch_size=BATCH_SIZE, shuffle=False, num_workers=0,
                                                  pin_memory=True, drop_last=True)
-    weights = torch.Tensor(TRAIN_DATASET.label_weights).cuda()
+    weights = torch.Tensor(TRAIN_DATASET.label_weights).to(device)
 
     log_string("The number of training data is: %d" % len(TRAIN_DATASET))
     log_string("The number of test data is: %d" % len(TEST_DATASET))
@@ -122,8 +121,8 @@ def main(args):
     shutil.copy('models/%s.py' % args.model, str(experiment_dir))
     shutil.copy('models/pointnet2_utils.py', str(experiment_dir))
 
-    classifier = MODEL.get_model(NUM_CLASSES).cuda()
-    criterion = MODEL.get_loss().cuda()
+    classifier = MODEL.get_model(NUM_CLASSES).to(device)
+    criterion = MODEL.get_loss().to(device)
     classifier.apply(inplace_relu)
 
     def weights_init(m):
@@ -192,7 +191,7 @@ def main(args):
             points = points.data.numpy()
             points[:, :, :3] = provider.rotate_point_cloud_z(points[:, :, :3])
             points = torch.Tensor(points)
-            points, target = points.float().cuda(), target.long().cuda()
+            points, target = points.float().to(device), target.long().to(device)
             points = points.transpose(2, 1)
 
             seg_pred, trans_feat = classifier(points)
@@ -240,7 +239,7 @@ def main(args):
             for i, (points, target) in tqdm(enumerate(testDataLoader), total=len(testDataLoader), smoothing=0.9):
                 points = points.data.numpy()
                 points = torch.Tensor(points)
-                points, target = points.float().cuda(), target.long().cuda()
+                points, target = points.float().to(device), target.long().to(device)
                 points = points.transpose(2, 1)
 
                 seg_pred, trans_feat = classifier(points)
