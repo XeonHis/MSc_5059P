@@ -112,7 +112,7 @@ def main(args):
                                                   worker_init_fn=lambda x: np.random.seed(x + int(time.time())))
     testDataLoader = torch.utils.data.DataLoader(TEST_DATASET, batch_size=BATCH_SIZE, shuffle=False, num_workers=0,
                                                  pin_memory=True, drop_last=True)
-    weights = torch.Tensor(TRAIN_DATASET.labelweights).cuda()
+    weights = torch.Tensor(TRAIN_DATASET.label_weights).cuda()
 
     log_string("The number of training data is: %d" % len(TRAIN_DATASET))
     log_string("The number of test data is: %d" % len(TEST_DATASET))
