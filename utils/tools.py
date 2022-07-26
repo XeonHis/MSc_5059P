@@ -43,9 +43,17 @@ def temp_tool(dirpath):
             os.rename(original_path, after_path)
 
 
+def pointcloud_visualization(filepath):
+    import open3d as o3d
+
+    # 创建点云文件
+    pcd = o3d.io.read_point_cloud(filepath, format='xyzrgb')
+    # 旋转点云
+    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    # 可视化
+    o3d.visualization.draw_geometries([pcd])
+
+
 if __name__ == '__main__':
-    # generate_pure_depth_image("../raw_data/processed/realsense_tissue_roll/with_depth")
-    # pcd_visualize("../raw_data/processed/realsense_tissue_roll/pcd/frame_171.pcd")
-    # read_npy(
-    #     'E:\Code project\python\MSc_5059P\PointNet\raw_data\custom\cup_frame_1165_test.npy')
+    pointcloud_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred.txt")
     pass
