@@ -8,6 +8,15 @@ from torch.utils.data import Dataset
 class S3DISDataset(Dataset):
     def __init__(self, data_root, split='train', num_point=4096, block_size=1.0,
                  sample_rate=1.0, transform=None):
+        """
+        init
+        :param data_root: 数据集的根目录
+        :param split: train or test
+        :param num_point:
+        :param block_size: cube的边长，用于对空间进行分割
+        :param sample_rate:
+        :param transform:
+        """
         super().__init__()
         self.num_point = num_point
         self.block_size = block_size
