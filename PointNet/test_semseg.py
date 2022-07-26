@@ -91,7 +91,7 @@ def main(args):
 
     root = 'data/custom/test/'
 
-    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=1, stride=0.5,
+    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=0.2, stride=0.1,
                                                         block_points=NUM_POINT)
     log_string("The number of test data is: %d" % len(TEST_DATASET_WHOLE_SCENE))
 

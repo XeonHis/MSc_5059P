@@ -12,10 +12,10 @@ parser.add_argument("-i", "--input", type=str, help="Path to the bag file")
 # Parse the command line arguments to an object
 args = parser.parse_args()
 # set default .bag file
-args.input = "../raw_data/raw/realsense_screwdriver.bag"
+args.input = "../rawdata/raw/realsense_screwdriver.bag"
 
 # 根据物品名称确定储存的路径
-processed_data_dir = "../raw_data/processed/"
+processed_data_dir = "../rawdata/processed/"
 current_store_path = processed_data_dir + args.input.split("/")[-1].split(".")[0]
 
 # rgbd图像储存路径

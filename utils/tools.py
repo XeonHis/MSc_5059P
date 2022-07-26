@@ -27,8 +27,8 @@ def convert_xyzrgb_to_txt(filepath):
     import numpy as np
     data = np.loadtxt(filepath)
     data[:, 3:] = np.around(data[:, 3:] * 255)
-    # print(raw_data)
-    # np.savetxt(filepath.replace("xyzrgb","txt"), raw_data)
+    # print(rawdata)
+    # np.savetxt(filepath.replace("xyzrgb","txt"), rawdata)
 
 
 def temp_tool(dirpath):
