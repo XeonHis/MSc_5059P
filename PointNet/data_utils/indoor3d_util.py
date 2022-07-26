@@ -8,20 +8,16 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(BASE_DIR)
 
 DATA_PATH = os.path.join(ROOT_DIR, 'data', 's3dis', 'Stanford3dDataset_v1.2_Aligned_Version')
-g_classes = ['bg', 'box', 'magroll', 'cup']
+g_classes = ['bg', 'box', 'magroll', 'cup', 'tissue_roll', 'umbrella', 'button', 'cupwithhandle', 'screwdriver']
 g_class2label = {cls: i for i, cls in enumerate(g_classes)}
 g_class2color = {'box': [0, 255, 0],
                  'magroll': [0, 0, 255],
                  'cup': [0, 255, 255],
-                 'beam': [255, 255, 0],
-                 'column': [255, 0, 255],
-                 'window': [100, 100, 255],
-                 'door': [200, 200, 100],
-                 'table': [170, 120, 200],
-                 'chair': [255, 0, 0],
-                 'sofa': [200, 100, 100],
-                 'bookcase': [10, 200, 100],
-                 'board': [200, 200, 200],
+                 'tissue_roll': [255, 255, 0],
+                 'umbrella': [255, 0, 255],
+                 'button': [100, 100, 255],
+                 'cupwithhandle': [200, 200, 100],
+                 'screwdriver': [170, 120, 200],
                  'bg': [50, 50, 50]}
 g_easy_view_labels = [7, 8, 9, 10, 11, 1]
 g_label2color = {g_classes.index(cls): g_class2color[cls] for cls in g_classes}

@@ -22,14 +22,14 @@ class S3DISDataset(Dataset):
         self.object_points, self.object_labels = [], []
         self.object_coord_min, self.object_coord_max = [], []
         num_point_all = []
-        labelweights = np.zeros(4)
+        labelweights = np.zeros(9)
 
         for file_name in tqdm(files_split, total=len(files_split)):
             object_path = os.path.join(data_root, file_name)
             object_data = np.load(object_path)  # xyzrgbl, N*7
             points, labels = object_data[:, 0:6], object_data[:, 6]  # xyzrgb, N*6; l, N
             # 直方图，统计各个类别的个数,range确定最小值和最大值（不包含）
-            tmp, _ = np.histogram(labels, range(5))
+            tmp, _ = np.histogram(labels, range(10))
             labelweights += tmp
             coord_min, coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]  # 坐标的3个最小值和最大值
             self.object_points.append(points), self.object_labels.append(labels)
@@ -41,14 +41,14 @@ class S3DISDataset(Dataset):
         print(self.labelweights)
         sample_prob = num_point_all / np.sum(num_point_all)
         num_iter = int(np.sum(num_point_all) * sample_rate / num_point)
-        room_idxs = []
+        idxs = []
         for index in range(len(files_split)):
-            room_idxs.extend([index] * int(round(sample_prob[index] * num_iter)))
-        self.room_idxs = np.array(room_idxs)
-        print("Totally {} samples in {} set.".format(len(self.room_idxs), split))
+            idxs.extend([index] * int(round(sample_prob[index] * num_iter)))
+        self.idxs = np.array(idxs)
+        print("Totally {} samples in {} set.".format(len(self.idxs), split))
 
     def __getitem__(self, idx):
-        room_idx = self.room_idxs[idx]
+        room_idx = self.idxs[idx]
         points = self.object_points[room_idx]  # N * 6
         labels = self.object_labels[room_idx]  # N
         N_points = points.shape[0]
@@ -86,7 +86,7 @@ class S3DISDataset(Dataset):
         return current_points, current_labels
 
     def __len__(self):
-        return len(self.room_idxs)
+        return len(self.idxs)
 
 
 class ScannetDatasetWholeScene():
@@ -116,9 +116,9 @@ class ScannetDatasetWholeScene():
             self.room_coord_min.append(coord_min), self.room_coord_max.append(coord_max)
         assert len(self.scene_points_list) == len(self.semantic_labels_list)
 
-        labelweights = np.zeros(4)
+        labelweights = np.zeros(9)
         for seg in self.semantic_labels_list:
-            tmp, _ = np.histogram(seg, range(5))
+            tmp, _ = np.histogram(seg, range(10))
             self.scene_points_num.append(seg.shape[0])
             labelweights += tmp
         labelweights = labelweights.astype(np.float32)
