@@ -48,8 +48,6 @@ def pointcloud_visualization(filepath):
 
     # 创建点云文件
     pcd = o3d.io.read_point_cloud(filepath, format='xyzrgb')
-    # 旋转点云
-    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
     # 可视化
     o3d.visualization.draw_geometries([pcd])
 
