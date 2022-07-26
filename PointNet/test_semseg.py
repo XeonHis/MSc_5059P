@@ -5,7 +5,7 @@ Date: Nov 2019
 import argparse
 import os
 from data_utils.S3DISDataLoader import ScannetDatasetWholeScene
-from data_utils.indoor3d_util import g_label2color
+# from data_utils.indoor3d_util import g_label2color
 import torch
 import logging
 from pathlib import Path
@@ -20,7 +20,17 @@ ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
 classes = ['bg', 'box', 'magroll', 'cup', 'tissue_roll', 'umbrella', 'button', 'cupwithhandle', 'screwdriver']
+g_class2color = {'box': [0, 255, 0],
+                 'magroll': [0, 0, 255],
+                 'cup': [0, 255, 255],
+                 'tissue_roll': [255, 255, 0],
+                 'umbrella': [255, 0, 255],
+                 'button': [100, 100, 255],
+                 'cupwithhandle': [200, 200, 100],
+                 'screwdriver': [170, 120, 200],
+                 'bg': [50, 50, 50]}
 class2label = {cls: i for i, cls in enumerate(classes)}
+g_label2color = {classes.index(cls): g_class2color[cls] for cls in classes}
 seg_classes = class2label
 seg_label_to_cat = {}
 for i, cat in enumerate(seg_classes.keys()):
@@ -28,14 +38,13 @@ for i, cat in enumerate(seg_classes.keys()):
 
 
 def parse_args():
-    '''PARAMETERS'''
+    """PARAMETERS"""
     parser = argparse.ArgumentParser('Model')
     parser.add_argument('--batch_size', type=int, default=32, help='batch size in testing [default: 32]')
     parser.add_argument('--gpu', type=str, default='0', help='specify gpu device')
     parser.add_argument('--num_point', type=int, default=4096, help='point number [default: 4096]')
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
-    parser.add_argument('--visual', action='store_true', default=False, help='visualize result [default: False]')
-    parser.add_argument('--test_area', type=int, default=5, help='area for testing, option: 1-6 [default: 5]')
+    parser.add_argument('--visual', action='store_true', default=True, help='visualize result [default: False]')
     parser.add_argument('--num_votes', type=int, default=3,
                         help='aggregate segmentation scores with voting [default: 5]')
 
@@ -58,7 +67,7 @@ def main(args):
         print(str)
 
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     experiment_dir = 'log/sem_seg/' + args.log_dir
     visual_dir = experiment_dir + '/visual/'
     visual_dir = Path(visual_dir)
@@ -80,7 +89,7 @@ def main(args):
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
-    root = 'data/custom/'
+    root = 'data/custom/test/'
 
     TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=0.2, stride=0.1,
                                                         block_points=NUM_POINT)
@@ -89,8 +98,10 @@ def main(args):
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
     MODEL = importlib.import_module(model_name)
-    classifier = MODEL.get_model(NUM_CLASSES).cuda()
-    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth')
+    classifier = MODEL.get_model(NUM_CLASSES).to(device)
+    checkpoint = torch.load(
+        str(experiment_dir) + '/checkpoints/best_model.pth') if torch.cuda.is_available() \
+        else torch.load(str(experiment_dir) + '/checkpoints/best_model.pth', map_location=torch.device('cpu'))
     classifier.load_state_dict(checkpoint['model_state_dict'])
     classifier = classifier.eval()
 
@@ -138,7 +149,7 @@ def main(args):
                     batch_data[:, :, 3:6] /= 1.0
 
                     torch_data = torch.Tensor(batch_data)
-                    torch_data = torch_data.float().cuda()
+                    torch_data = torch_data.float().to(device)
                     torch_data = torch_data.transpose(2, 1)
                     seg_pred, _ = classifier(torch_data)
                     batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
