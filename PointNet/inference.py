@@ -155,7 +155,6 @@ def main(args):
                 pl_save.close()
             for i in range(whole_scene_label.shape[0]):
                 color = g_label2color[pred_label[i]]
-                color_gt = g_label2color[whole_scene_label[i]]
                 if args.visual:
                     fout.write('%f %f %f %d %d %d\n' % (
                         whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color[0], color[1],
