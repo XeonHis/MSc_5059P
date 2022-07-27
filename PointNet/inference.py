@@ -1,14 +1,10 @@
 import argparse
 import os
 from data_utils.S3DISDataLoader import InferenceDataset
-# from data_utils.indoor3d_util import g_label2color
 import torch
-import logging
-from pathlib import Path
 import sys
 import importlib
 from tqdm import tqdm
-import provider
 import numpy as np
 from utils.tools import pointcloud_visualization
 
@@ -41,7 +37,7 @@ def parse_args():
     parser.add_argument('--gpu', type=str, default='0', help='specify gpu device')
     parser.add_argument('--num_point', type=int, default=4096, help='point number [default: 4096]')
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
-    parser.add_argument('--num_votes', type=int, default=3,
+    parser.add_argument('--num_votes', type=int, default=1,
                         help='aggregate segmentation scores with voting [default: 5]')
 
     return parser.parse_args()
@@ -68,8 +64,9 @@ def main(args):
     NUM_POINT = args.num_point
 
     filepath = 'data/custom/inference/magroll_frame_13610.1ds_test.npy'
+    data = np.load(filepath)
 
-    TEST_DATASET_WHOLE_SCENE = InferenceDataset(filepath)
+    TEST_DATASET_WHOLE_SCENE = InferenceDataset(data)
 
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
@@ -82,72 +79,55 @@ def main(args):
     classifier = classifier.eval()
 
     with torch.no_grad():
-        scene_id = TEST_DATASET_WHOLE_SCENE.file_list
-        scene_id = [x[:-4] for x in scene_id]
-        scene_id = ["inference"]
-        num_batches = 1
 
         total_seen_class = [0 for _ in range(NUM_CLASSES)]
         total_correct_class = [0 for _ in range(NUM_CLASSES)]
         total_iou_deno_class = [0 for _ in range(NUM_CLASSES)]
 
-        for batch_idx in range(num_batches):
-            print("Inference [%d/%d] %s ..." % (batch_idx + 1, num_batches, scene_id[batch_idx]))
-            total_seen_class_tmp = [0 for _ in range(NUM_CLASSES)]
-            total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
-            total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
+        total_seen_class_tmp = [0 for _ in range(NUM_CLASSES)]
+        total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
+        total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
 
-            whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]  # [x,y,z,r,g,b]
-            whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]  # [label]
-            vote_label_pool = np.zeros((whole_scene_label.shape[0], NUM_CLASSES))
-            for _ in tqdm(range(args.num_votes), total=args.num_votes):
-                scene_data, scene_label, scene_smpw, scene_point_index = TEST_DATASET_WHOLE_SCENE[batch_idx]
-                num_blocks = scene_data.shape[0]
-                s_batch_num = (num_blocks + BATCH_SIZE - 1) // BATCH_SIZE
-                batch_data = np.zeros((BATCH_SIZE, NUM_POINT, 9))
+        whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[0]  # [x,y,z,r,g,b]
+        whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[0]  # [label]
+        vote_label_pool = np.zeros((whole_scene_label.shape[0], NUM_CLASSES))
+        for _ in tqdm(range(args.num_votes), total=args.num_votes):
+            scene_data, scene_label, scene_smpw, scene_point_index = TEST_DATASET_WHOLE_SCENE[0]
+            num_blocks = scene_data.shape[0]
+            s_batch_num = (num_blocks + BATCH_SIZE - 1) // BATCH_SIZE
+            batch_data = np.zeros((BATCH_SIZE, NUM_POINT, 9))
 
-                batch_label = np.zeros((BATCH_SIZE, NUM_POINT))
-                batch_point_index = np.zeros((BATCH_SIZE, NUM_POINT))
-                batch_smpw = np.zeros((BATCH_SIZE, NUM_POINT))
+            batch_label = np.zeros((BATCH_SIZE, NUM_POINT))
+            batch_point_index = np.zeros((BATCH_SIZE, NUM_POINT))
+            batch_smpw = np.zeros((BATCH_SIZE, NUM_POINT))
 
-                for sbatch in range(s_batch_num):
-                    start_idx = sbatch * BATCH_SIZE
-                    end_idx = min((sbatch + 1) * BATCH_SIZE, num_blocks)
-                    real_batch_size = end_idx - start_idx
-                    batch_data[0:real_batch_size, ...] = scene_data[start_idx:end_idx, ...]
-                    batch_label[0:real_batch_size, ...] = scene_label[start_idx:end_idx, ...]
-                    batch_point_index[0:real_batch_size, ...] = scene_point_index[start_idx:end_idx, ...]
-                    batch_smpw[0:real_batch_size, ...] = scene_smpw[start_idx:end_idx, ...]
-                    batch_data[:, :, 3:6] /= 1.0
+            for sbatch in range(s_batch_num):
+                start_idx = sbatch * BATCH_SIZE
+                end_idx = min((sbatch + 1) * BATCH_SIZE, num_blocks)
+                real_batch_size = end_idx - start_idx
+                batch_data[0:real_batch_size, ...] = scene_data[start_idx:end_idx, ...]
+                batch_label[0:real_batch_size, ...] = scene_label[start_idx:end_idx, ...]
+                batch_point_index[0:real_batch_size, ...] = scene_point_index[start_idx:end_idx, ...]
+                batch_smpw[0:real_batch_size, ...] = scene_smpw[start_idx:end_idx, ...]
+                batch_data[:, :, 3:6] /= 1.0
 
-                    torch_data = torch.Tensor(batch_data)
-                    torch_data = torch_data.float().to(device)
-                    torch_data = torch_data.transpose(2, 1)
-                    seg_pred, _ = classifier(torch_data)
-                    batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
+                torch_data = torch.Tensor(batch_data)
+                torch_data = torch_data.float().to(device)
+                torch_data = torch_data.transpose(2, 1)
+                seg_pred, _ = classifier(torch_data)
+                batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
 
-                    vote_label_pool = add_vote(vote_label_pool, batch_point_index[0:real_batch_size, ...],
-                                               batch_pred_label[0:real_batch_size, ...],
-                                               batch_smpw[0:real_batch_size, ...])
+                vote_label_pool = add_vote(vote_label_pool, batch_point_index[0:real_batch_size, ...],
+                                           batch_pred_label[0:real_batch_size, ...],
+                                           batch_smpw[0:real_batch_size, ...])
 
-            pred_label = np.argmax(vote_label_pool, 1)
+        pred_label = np.argmax(vote_label_pool, 1)
 
-            for l in range(NUM_CLASSES):
-                total_seen_class_tmp[l] += np.sum((whole_scene_label == l))
-                total_correct_class_tmp[l] += np.sum((pred_label == l) & (whole_scene_label == l))
-                total_iou_deno_class_tmp[l] += np.sum(((pred_label == l) | (whole_scene_label == l)))
-                total_seen_class[l] += total_seen_class_tmp[l]
-                total_correct_class[l] += total_correct_class_tmp[l]
-                total_iou_deno_class[l] += total_iou_deno_class_tmp[l]
-
-            iou_map = np.array(total_correct_class_tmp) / (np.array(total_iou_deno_class_tmp, dtype=np.float) + 1e-6)
-            print(iou_map)
-
-            result = np.copy(whole_scene_data)
-            for i in range(whole_scene_label.shape[0]):
-                color = g_label2color[pred_label[i]]
-                result[i, 3:] = color[0:]
-            pointcloud_visualization(result)
+        result = np.copy(whole_scene_data)
+        for i in range(whole_scene_label.shape[0]):
+            color = g_label2color[pred_label[i]]
+            result[i, 3:] = color[0:]
+        pointcloud_visualization(result)
 
 
 if __name__ == '__main__':

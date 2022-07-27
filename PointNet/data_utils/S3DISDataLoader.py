@@ -191,20 +191,20 @@ class ScannetDatasetWholeScene:
 
 class InferenceDataset:
     # prepare to give prediction on each points
-    def __init__(self, filepath, block_points=4096, stride=0.5, block_size=1.0, padding=0.001):
+    def __init__(self, data, block_points=4096, stride=0.5, block_size=1.0, padding=0.001):
         self.block_points = block_points
         self.block_size = block_size
         self.padding = padding
-        self.filepath = filepath
+        # self.filepath = filepath
         self.stride = stride
         self.scene_points_num = []
-        self.file_list = [filepath]
+        # self.file_list = [filepath]
 
         self.scene_points_list = []
         self.semantic_labels_list = []
         self.room_coord_min, self.room_coord_max = [], []
 
-        data = np.load(filepath)
+        data = data
         points = data[:, :3]
         self.scene_points_list.append(data[:, :6])
         self.semantic_labels_list.append(data[:, 6])
