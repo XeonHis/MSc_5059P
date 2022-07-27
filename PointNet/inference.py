@@ -7,6 +7,7 @@ import importlib
 from tqdm import tqdm
 import numpy as np
 from utils.tools import pointcloud_visualization
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -63,7 +64,7 @@ def main(args):
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
-    filepath = 'data/custom/inference/magroll_frame_13610.1ds_test.npy'
+    filepath = 'data/custom/inference/magroll_frame_13610.02ds.npy'
     data = np.load(filepath)
 
     TEST_DATASET_WHOLE_SCENE = InferenceDataset(data)
@@ -79,15 +80,6 @@ def main(args):
     classifier = classifier.eval()
 
     with torch.no_grad():
-
-        total_seen_class = [0 for _ in range(NUM_CLASSES)]
-        total_correct_class = [0 for _ in range(NUM_CLASSES)]
-        total_iou_deno_class = [0 for _ in range(NUM_CLASSES)]
-
-        total_seen_class_tmp = [0 for _ in range(NUM_CLASSES)]
-        total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
-        total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
-
         whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[0]  # [x,y,z,r,g,b]
         whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[0]  # [label]
         vote_label_pool = np.zeros((whole_scene_label.shape[0], NUM_CLASSES))
@@ -114,7 +106,10 @@ def main(args):
                 torch_data = torch.Tensor(batch_data)
                 torch_data = torch_data.float().to(device)
                 torch_data = torch_data.transpose(2, 1)
+
+                eval_start = datetime.now()
                 seg_pred, _ = classifier(torch_data)
+                print('eval time consuming: %f' % (datetime.now() - eval_start).seconds)
                 batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
 
                 vote_label_pool = add_vote(vote_label_pool, batch_point_index[0:real_batch_size, ...],

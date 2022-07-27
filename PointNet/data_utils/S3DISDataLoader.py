@@ -3,6 +3,7 @@ import numpy as np
 
 from tqdm import tqdm
 from torch.utils.data import Dataset
+import datetime
 
 
 class S3DISDataset(Dataset):
@@ -191,7 +192,7 @@ class ScannetDatasetWholeScene:
 
 class InferenceDataset:
     # prepare to give prediction on each points
-    def __init__(self, data, block_points=4096, stride=0.5, block_size=1.0, padding=0.001):
+    def __init__(self, data, block_points=4096, stride=0.1, block_size=0.2, padding=0.001):
         self.block_points = block_points
         self.block_size = block_size
         self.padding = padding
