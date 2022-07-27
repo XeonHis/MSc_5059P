@@ -1,6 +1,6 @@
 import argparse
 import os
-from data_utils.S3DISDataLoader import ScannetDatasetWholeScene
+from data_utils.S3DISDataLoader import InferenceDataset
 # from data_utils.indoor3d_util import g_label2color
 import torch
 import logging
@@ -70,10 +70,9 @@ def main(args):
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
-    root = 'data/custom/inference/'
+    filepath = 'data/custom/inference/magroll_frame_13610.1ds_test.npy'
 
-    TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=1, stride=0.5,
-                                                        block_points=NUM_POINT)
+    TEST_DATASET_WHOLE_SCENE = InferenceDataset(filepath)
 
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
@@ -88,7 +87,8 @@ def main(args):
     with torch.no_grad():
         scene_id = TEST_DATASET_WHOLE_SCENE.file_list
         scene_id = [x[:-4] for x in scene_id]
-        num_batches = len(TEST_DATASET_WHOLE_SCENE)
+        scene_id = ["inference"]
+        num_batches = 1
 
         total_seen_class = [0 for _ in range(NUM_CLASSES)]
         total_correct_class = [0 for _ in range(NUM_CLASSES)]
@@ -102,8 +102,8 @@ def main(args):
             if args.visual:
                 fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.txt'), 'w')
 
-            whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]
-            whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]
+            whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]  # [x,y,z,r,g,b]
+            whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]  # [label]
             vote_label_pool = np.zeros((whole_scene_label.shape[0], NUM_CLASSES))
             for _ in tqdm(range(args.num_votes), total=args.num_votes):
                 scene_data, scene_label, scene_smpw, scene_point_index = TEST_DATASET_WHOLE_SCENE[batch_idx]

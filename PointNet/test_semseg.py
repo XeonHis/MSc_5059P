@@ -89,7 +89,7 @@ def main(args):
     BATCH_SIZE = args.batch_size
     NUM_POINT = args.num_point
 
-    root = 'data/custom/test/'
+    root = 'data/custom/'
 
     TEST_DATASET_WHOLE_SCENE = ScannetDatasetWholeScene(root, split='test', block_size=0.2, stride=0.1,
                                                         block_points=NUM_POINT)
@@ -107,7 +107,7 @@ def main(args):
 
     with torch.no_grad():
         scene_id = TEST_DATASET_WHOLE_SCENE.file_list
-        scene_id = [x[:-4] for x in scene_id]
+        scene_id = [x[:-4] for x in scene_id] # 去除后缀名
         num_batches = len(TEST_DATASET_WHOLE_SCENE)
 
         total_seen_class = [0 for _ in range(NUM_CLASSES)]
