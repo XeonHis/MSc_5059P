@@ -141,6 +141,7 @@ def main(args):
         for i in range(whole_scene_label.shape[0]):
             color = g_label2color[pred_label[i]]
             result[i, 3:] = color[0:]
+        output = np.column_stack((result,whole_scene_label))
         pointcloud_visualization(result)
 
 

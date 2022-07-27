@@ -135,6 +135,23 @@ def test():
     pointcloud_visualization(data)
 
 
+def calculate_lwh():
+    import numpy as np
+
+    iou_map = [0.8429003, 0., 0.27847049, 0., 0., 0., 0., 0., 0.]
+    cls = iou_map.index(max(iou_map[1:]))
+    data = np.load("result.npy")
+    iou_data = np.where(data[:, -1] == cls)[0]
+    x_max_idx, y_max_idx, z_max_idx = np.argmax(data[iou_data][:, :3], axis=0)
+    x_min_idx, y_min_idx, z_min_idx = np.argmin(data[iou_data][:, :3], axis=0)
+    # print(data)
+    spice = data[iou_data][:, :3]
+    length = spice[x_max_idx][0] - spice[x_min_idx][0]
+    width = spice[y_max_idx][1] - spice[y_min_idx][1]
+    height = spice[z_max_idx][2] - spice[z_min_idx][2]
+    print(length / 4, width / 4, height / 4)
+
+
 if __name__ == '__main__':
     # pointcloud_visualization("PointNet/log/inference_pred.txt")
     # pointcloud_rt_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred_ds.pcd")
