@@ -10,6 +10,7 @@ import importlib
 from tqdm import tqdm
 import provider
 import numpy as np
+from utils.tools import pointcloud_visualization
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -40,7 +41,6 @@ def parse_args():
     parser.add_argument('--gpu', type=str, default='0', help='specify gpu device')
     parser.add_argument('--num_point', type=int, default=4096, help='point number [default: 4096]')
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
-    parser.add_argument('--visual', action='store_true', default=True, help='visualize result [default: False]')
     parser.add_argument('--num_votes', type=int, default=3,
                         help='aggregate segmentation scores with voting [default: 5]')
 
@@ -62,9 +62,6 @@ def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
     experiment_dir = 'log/sem_seg/' + args.log_dir
-    visual_dir = experiment_dir + '/visual/'
-    visual_dir = Path(visual_dir)
-    visual_dir.mkdir(exist_ok=True)
 
     NUM_CLASSES = len(classes)
     BATCH_SIZE = args.batch_size
@@ -99,8 +96,6 @@ def main(args):
             total_seen_class_tmp = [0 for _ in range(NUM_CLASSES)]
             total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
             total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
-            if args.visual:
-                fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.txt'), 'w')
 
             whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]  # [x,y,z,r,g,b]
             whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]  # [label]
@@ -148,19 +143,11 @@ def main(args):
             iou_map = np.array(total_correct_class_tmp) / (np.array(total_iou_deno_class_tmp, dtype=np.float) + 1e-6)
             print(iou_map)
 
-            filename = os.path.join(visual_dir, scene_id[batch_idx] + '.txt')
-            with open(filename, 'w') as pl_save:
-                for i in pred_label:
-                    pl_save.write(str(int(i)) + '\n')
-                pl_save.close()
+            result = np.copy(whole_scene_data)
             for i in range(whole_scene_label.shape[0]):
                 color = g_label2color[pred_label[i]]
-                if args.visual:
-                    fout.write('%f %f %f %d %d %d\n' % (
-                        whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color[0], color[1],
-                        color[2]))
-            if args.visual:
-                fout.close()
+                result[i, 3:] = color[0:]
+            pointcloud_visualization(result)
 
 
 if __name__ == '__main__':

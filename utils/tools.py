@@ -43,12 +43,16 @@ def temp_tool(dirpath):
             os.rename(original_path, after_path)
 
 
-def pointcloud_visualization(filepath):
+def pointcloud_visualization(data):
     import open3d as o3d
 
-    # 创建点云文件
-    pcd = o3d.io.read_point_cloud(filepath, format='xyzrgb')
-    # 可视化
+    # # 创建点云文件
+    # pcd = o3d.io.read_point_cloud(filepath, format='xyzrgb')
+    # # 可视化
+    # o3d.visualization.draw_geometries([pcd])
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(data[:, :3])
+    pcd.colors = o3d.utility.Vector3dVector(data[:, 3:])
     o3d.visualization.draw_geometries([pcd])
 
 
@@ -125,7 +129,14 @@ def pointcloud_rt_visualization(filepath):
     del vis
 
 
+def test():
+    import numpy as np
+    data = np.loadtxt("PointNet/log/inference_pred.txt")
+    pointcloud_visualization(data)
+
+
 if __name__ == '__main__':
-    # pointcloud_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred.txt")
-    pointcloud_rt_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred_ds.pcd")
+    # pointcloud_visualization("PointNet/log/inference_pred.txt")
+    # pointcloud_rt_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred_ds.pcd")
+    # test()
     pass

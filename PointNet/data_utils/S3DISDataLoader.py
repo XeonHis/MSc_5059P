@@ -230,15 +230,17 @@ class InferenceDataset:
         grid_x = int(np.ceil(float(coord_max[0] - coord_min[0] - self.block_size) / self.stride) + 1)
         grid_y = int(np.ceil(float(coord_max[1] - coord_min[1] - self.block_size) / self.stride) + 1)
         data_room, label_room, sample_weight, index_room = np.array([]), np.array([]), np.array([]), np.array([])
-        # 对每一块进行预测
+        '''对每一块进行遍历'''
         for index_y in range(0, grid_y):
             for index_x in range(0, grid_x):
+                '''一个矩形区域'''
                 s_x = coord_min[0] + index_x * self.stride
                 e_x = min(s_x + self.block_size, coord_max[0])
                 s_x = e_x - self.block_size
                 s_y = coord_min[1] + index_y * self.stride
                 e_y = min(s_y + self.block_size, coord_max[1])
                 s_y = e_y - self.block_size
+                '''查找在当前的矩形内的点'''
                 point_idxes = np.where(
                     (points[:, 0] >= s_x - self.padding) & (points[:, 0] <= e_x + self.padding) & (
                             points[:, 1] >= s_y - self.padding) & (
@@ -247,12 +249,15 @@ class InferenceDataset:
                     continue
                 num_batch = int(np.ceil(point_idxes.size / self.block_points))
                 point_size = int(num_batch * self.block_points)
+                '''确认点的数目需不需要replace'''
                 replace = False if (point_size - point_idxes.size <= point_idxes.size) else True
+                '''填充点的数量到4096'''
                 point_idxes_repeat = np.random.choice(point_idxes, point_size - point_idxes.size, replace=replace)
                 point_idxes = np.concatenate((point_idxes, point_idxes_repeat))
                 np.random.shuffle(point_idxes)
                 data_batch = points[point_idxes, :]
                 normalized_xyz = np.zeros((point_size, 3))
+                '''做归一化'''
                 normalized_xyz[:, 0] = data_batch[:, 0] / coord_max[0]
                 normalized_xyz[:, 1] = data_batch[:, 1] / coord_max[1]
                 normalized_xyz[:, 2] = data_batch[:, 2] / coord_max[2]
