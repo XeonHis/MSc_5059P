@@ -111,9 +111,9 @@ class ScannetDatasetWholeScene:
         self.scene_points_num = []
         assert split in ['train', 'test']
         if self.split == 'train':
-            self.file_list = [d for d in os.listdir(root) if d.find('_test') is -1]
+            self.file_list = [d for d in os.listdir(root) if d.find('_test') == -1]
         else:
-            self.file_list = [d for d in os.listdir(root) if d.find('_test') is not -1]
+            self.file_list = [d for d in os.listdir(root) if d.find('_test') != -1]
         self.scene_points_list = []
         self.semantic_labels_list = []
         self.room_coord_min, self.room_coord_max = [], []
@@ -219,7 +219,7 @@ class InferenceDataset:
             label_weights += tmp
         label_weights = label_weights.astype(np.float32)
         label_weights = label_weights / np.sum(label_weights)
-        self.label_weights = np.power(np.amax(label_weights) / label_weights, 1 / 3.0)
+        self.label_weights = np.power((np.amax(label_weights) / label_weights)+1e-9, 1 / 3.0)
 
     def __getitem__(self, index):
         point_set_ini = self.scene_points_list[index]  # [x,y,z,r,g,b]

@@ -117,7 +117,7 @@ def main(args):
 
                 eval_start = datetime.now()
                 seg_pred, _ = classifier(torch_data)
-                print('eval time consuming: %f' % (datetime.now() - eval_start).seconds)
+                # print('eval time consuming: %f' % (datetime.now() - eval_start).seconds)
                 batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
 
                 vote_label_pool = add_vote(vote_label_pool, batch_point_index[0:real_batch_size, ...],
@@ -134,7 +134,7 @@ def main(args):
             total_correct_class[l] += total_correct_class_tmp[l]
             total_iou_deno_class[l] += total_iou_deno_class_tmp[l]
 
-        iou_map = np.array(total_correct_class_tmp) / (np.array(total_iou_deno_class_tmp, dtype=np.float) + 1e-6)
+        iou_map = np.array(total_correct_class_tmp) / (np.array(total_iou_deno_class_tmp, dtype=float) + 1e-6)
         print(iou_map)
 
         result = np.copy(whole_scene_data)
@@ -142,7 +142,7 @@ def main(args):
             color = g_label2color[pred_label[i]]
             result[i, 3:] = color[0:]
         output = np.column_stack((result,whole_scene_label))
-        pointcloud_visualization(result)
+        pointcloud_visualization(output,iou_map.tolist())
 
 
 if __name__ == '__main__':
