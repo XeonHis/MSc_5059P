@@ -43,17 +43,32 @@ def temp_tool(dirpath):
             os.rename(original_path, after_path)
 
 
-def pointcloud_visualization(data):
+def pointcloud_visualization(all_data, iou_map):
     import open3d as o3d
 
+    '''从文件中读取'''
     # # 创建点云文件
-    # pcd = o3d.io.read_point_cloud(filepath, format='xyzrgb')
+    # pcd = o3d.io.read_point_cloud(data, format='xyzrgb')
+    # # 边界框
+    # aabb = pcd.get_axis_aligned_bounding_box()
+    # aabb.color = (1, 0, 0)
     # # 可视化
-    # o3d.visualization.draw_geometries([pcd])
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(data[:, :3])
-    pcd.colors = o3d.utility.Vector3dVector(data[:, 3:])
-    o3d.visualization.draw_geometries([pcd])
+    # o3d.visualization.draw_geometries([pcd,aabb])
+    '''从ndarray中读取'''
+    whole_scene = o3d.geometry.PointCloud()
+    whole_scene.points = o3d.utility.Vector3dVector(all_data[:, :3])
+    whole_scene.colors = o3d.utility.Vector3dVector(all_data[:, 3:6])
+    seg_data = get_seg_data(all_data, iou_map)
+    seg_scene = o3d.geometry.PointCloud()
+    seg_scene.points = o3d.utility.Vector3dVector(seg_data[:, :3])
+    seg_scene.colors = o3d.utility.Vector3dVector(seg_data[:, 3:6])
+    bbox = seg_scene.get_axis_aligned_bounding_box()
+    bbox.color = (1, 0, 0)
+
+    l, w, h = bbox.get_extent() * 25
+    print(l, w, h)
+
+    o3d.visualization.draw_geometries([whole_scene, bbox])
 
 
 def pointcloud_rt_visualization(filepath):
@@ -135,25 +150,39 @@ def test():
     pointcloud_visualization(data)
 
 
-def calculate_lwh():
+def calculate_lwh(data, iou_map):
     import numpy as np
 
-    iou_map = [0.8429003, 0., 0.27847049, 0., 0., 0., 0., 0., 0.]
+    # iou_map = [0.8429003, 0., 0.27847049, 0., 0., 0., 0., 0., 0.]
     cls = iou_map.index(max(iou_map[1:]))
-    data = np.load("result.npy")
+    # data = np.load("test/result.npy")
     iou_data = np.where(data[:, -1] == cls)[0]
     x_max_idx, y_max_idx, z_max_idx = np.argmax(data[iou_data][:, :3], axis=0)
     x_min_idx, y_min_idx, z_min_idx = np.argmin(data[iou_data][:, :3], axis=0)
     # print(data)
-    spice = data[iou_data][:, :3]
+    spice = data[iou_data][:, :-1]
     length = spice[x_max_idx][0] - spice[x_min_idx][0]
     width = spice[y_max_idx][1] - spice[y_min_idx][1]
     height = spice[z_max_idx][2] - spice[z_min_idx][2]
     print(length / 4, width / 4, height / 4)
+    return spice
+
+
+def get_seg_data(data, iou_map):
+    import numpy as np
+
+    cls = iou_map.index(max(iou_map[1:]))
+    iou_data = np.where(data[:, -1] == cls)[0]
+    spice = data[iou_data][:, :-1]
+    return spice
 
 
 if __name__ == '__main__':
     # pointcloud_visualization("PointNet/log/inference_pred.txt")
     # pointcloud_rt_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred_ds.pcd")
     # test()
+    import numpy as np
+
+    iou_map = [0.8429003, 0., 0.27847049, 0., 0., 0., 0., 0., 0.]
+    pointcloud_visualization(np.load("test/result.npy"), iou_map)
     pass
