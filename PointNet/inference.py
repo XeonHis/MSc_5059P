@@ -80,6 +80,14 @@ def main(args):
     classifier = classifier.eval()
 
     with torch.no_grad():
+        total_seen_class = [0 for _ in range(NUM_CLASSES)]
+        total_correct_class = [0 for _ in range(NUM_CLASSES)]
+        total_iou_deno_class = [0 for _ in range(NUM_CLASSES)]
+
+        total_seen_class_tmp = [0 for _ in range(NUM_CLASSES)]
+        total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
+        total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
+
         whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[0]  # [x,y,z,r,g,b]
         whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[0]  # [label]
         vote_label_pool = np.zeros((whole_scene_label.shape[0], NUM_CLASSES))
@@ -117,6 +125,17 @@ def main(args):
                                            batch_smpw[0:real_batch_size, ...])
 
         pred_label = np.argmax(vote_label_pool, 1)
+
+        for l in range(NUM_CLASSES):
+            total_seen_class_tmp[l] += np.sum((whole_scene_label == l))
+            total_correct_class_tmp[l] += np.sum((pred_label == l) & (whole_scene_label == l))
+            total_iou_deno_class_tmp[l] += np.sum(((pred_label == l) | (whole_scene_label == l)))
+            total_seen_class[l] += total_seen_class_tmp[l]
+            total_correct_class[l] += total_correct_class_tmp[l]
+            total_iou_deno_class[l] += total_iou_deno_class_tmp[l]
+
+        iou_map = np.array(total_correct_class_tmp) / (np.array(total_iou_deno_class_tmp, dtype=np.float) + 1e-6)
+        print(iou_map)
 
         result = np.copy(whole_scene_data)
         for i in range(whole_scene_label.shape[0]):
