@@ -5,7 +5,7 @@ Date: Nov 2019
 import argparse
 import os
 from data_utils.S3DISDataLoader import ScannetDatasetWholeScene
-from data_utils.indoor3d_util import g_label2color
+# from data_utils.indoor3d_util import g_label2color
 import torch
 import logging
 from pathlib import Path
@@ -20,7 +20,17 @@ ROOT_DIR = BASE_DIR
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 
 classes = ['bg', 'box', 'magroll', 'cup', 'tissue_roll', 'umbrella', 'button', 'cupwithhandle', 'screwdriver']
+g_class2color = {'box': [0 / 255, 255 / 255, 0 / 255],
+                 'magroll': [0 / 255, 0 / 255, 255 / 255],
+                 'cup': [0 / 255, 255 / 255, 255 / 255],
+                 'tissue_roll': [255 / 255, 255 / 255, 0 / 255],
+                 'umbrella': [255 / 255, 0 / 255, 255 / 255],
+                 'button': [100 / 255, 100 / 255, 255 / 255],
+                 'cupwithhandle': [200 / 255, 200 / 255, 100 / 255],
+                 'screwdriver': [170 / 255, 120 / 255, 200 / 255],
+                 'bg': [50 / 255, 50 / 255, 50 / 255]}
 class2label = {cls: i for i, cls in enumerate(classes)}
+g_label2color = {classes.index(cls): g_class2color[cls] for cls in classes}
 seg_classes = class2label
 seg_label_to_cat = {}
 for i, cat in enumerate(seg_classes.keys()):
@@ -28,14 +38,13 @@ for i, cat in enumerate(seg_classes.keys()):
 
 
 def parse_args():
-    '''PARAMETERS'''
+    """PARAMETERS"""
     parser = argparse.ArgumentParser('Model')
     parser.add_argument('--batch_size', type=int, default=32, help='batch size in testing [default: 32]')
     parser.add_argument('--gpu', type=str, default='0', help='specify gpu device')
     parser.add_argument('--num_point', type=int, default=4096, help='point number [default: 4096]')
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
-    parser.add_argument('--visual', action='store_true', default=False, help='visualize result [default: False]')
-    parser.add_argument('--test_area', type=int, default=5, help='area for testing, option: 1-6 [default: 5]')
+    parser.add_argument('--visual', action='store_true', default=True, help='visualize result [default: False]')
     parser.add_argument('--num_votes', type=int, default=3,
                         help='aggregate segmentation scores with voting [default: 5]')
 
@@ -58,7 +67,7 @@ def main(args):
         print(str)
 
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     experiment_dir = 'log/sem_seg/' + args.log_dir
     visual_dir = experiment_dir + '/visual/'
     visual_dir = Path(visual_dir)
@@ -89,14 +98,16 @@ def main(args):
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
     MODEL = importlib.import_module(model_name)
-    classifier = MODEL.get_model(NUM_CLASSES).cuda()
-    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth')
+    classifier = MODEL.get_model(NUM_CLASSES).to(device)
+    checkpoint = torch.load(
+        str(experiment_dir) + '/checkpoints/best_model.pth') if torch.cuda.is_available() \
+        else torch.load(str(experiment_dir) + '/checkpoints/best_model.pth', map_location=torch.device('cpu'))
     classifier.load_state_dict(checkpoint['model_state_dict'])
     classifier = classifier.eval()
 
     with torch.no_grad():
         scene_id = TEST_DATASET_WHOLE_SCENE.file_list
-        scene_id = [x[:-4] for x in scene_id]
+        scene_id = [x[:-4] for x in scene_id] # 去除后缀名
         num_batches = len(TEST_DATASET_WHOLE_SCENE)
 
         total_seen_class = [0 for _ in range(NUM_CLASSES)]
@@ -111,8 +122,8 @@ def main(args):
             total_correct_class_tmp = [0 for _ in range(NUM_CLASSES)]
             total_iou_deno_class_tmp = [0 for _ in range(NUM_CLASSES)]
             if args.visual:
-                fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.obj'), 'w')
-                fout_gt = open(os.path.join(visual_dir, scene_id[batch_idx] + '_gt.obj'), 'w')
+                fout = open(os.path.join(visual_dir, scene_id[batch_idx] + '_pred.txt'), 'w')
+                fout_gt = open(os.path.join(visual_dir, scene_id[batch_idx] + '_gt.txt'), 'w')
 
             whole_scene_data = TEST_DATASET_WHOLE_SCENE.scene_points_list[batch_idx]
             whole_scene_label = TEST_DATASET_WHOLE_SCENE.semantic_labels_list[batch_idx]
@@ -138,7 +149,7 @@ def main(args):
                     batch_data[:, :, 3:6] /= 1.0
 
                     torch_data = torch.Tensor(batch_data)
-                    torch_data = torch_data.float().cuda()
+                    torch_data = torch_data.float().to(device)
                     torch_data = torch_data.transpose(2, 1)
                     seg_pred, _ = classifier(torch_data)
                     batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()
@@ -173,11 +184,11 @@ def main(args):
                 color = g_label2color[pred_label[i]]
                 color_gt = g_label2color[whole_scene_label[i]]
                 if args.visual:
-                    fout.write('v %f %f %f %d %d %d\n' % (
+                    fout.write('%f %f %f %d %d %d\n' % (
                         whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color[0], color[1],
                         color[2]))
                     fout_gt.write(
-                        'v %f %f %f %d %d %d\n' % (
+                        '%f %f %f %d %d %d\n' % (
                             whole_scene_data[i, 0], whole_scene_data[i, 1], whole_scene_data[i, 2], color_gt[0],
                             color_gt[1], color_gt[2]))
             if args.visual:

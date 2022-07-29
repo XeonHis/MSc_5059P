@@ -46,4 +46,5 @@ def split_train_test(dirpath, test_percent):
 
 if __name__ == '__main__':
     # working dir: current file dir
-    build_dataset("../data/processed/realsense_cupwithhandle/pcd", 0.3)
+    # build_dataset("../rawdata/processed/realsense_cupwithhandle/pcd", 0.3)
+    build_dataset("../rawdata/processed/realsense_magroll/test_for_inference", 0)

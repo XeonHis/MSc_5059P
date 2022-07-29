@@ -126,9 +126,9 @@ dmypy.json
 # idea compile file
 .idea/
 
-# realsense raw data and dataset
-data/
-data/processed/
+# realsense raw rawdata and dataset
+rawdata/
+rawdata/processed/
 
 # demo code
 data_process/demo/
@@ -142,5 +142,9 @@ PointNet/data
 # PointNet log
 PointNet/log
 
+# verysync folder
+Code Project/
 
-utils/Area_1_WC_1.txt
+.DS_Store
+
+PointNet/runs/
