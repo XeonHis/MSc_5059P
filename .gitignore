@@ -122,3 +122,29 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# idea compile file
+.idea/
+
+# realsense raw rawdata and dataset
+rawdata/
+rawdata/processed/
+
+# demo code
+data_process/demo/
+
+# test code dir
+test/
+
+# PointNet dataset
+PointNet/data
+
+# PointNet log
+PointNet/log
+
+# verysync folder
+Code Project/
+
+.DS_Store
+
+PointNet/runs/
