@@ -146,3 +146,5 @@ PointNet/log
 Code Project/
 
 .DS_Store
+
+PointNet/runs/
