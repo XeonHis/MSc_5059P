@@ -31,6 +31,7 @@ for i, cat in enumerate(seg_classes.keys()):
 
 
 def add_vote(vote_label_pool, point_idx, pred_label):
+    """对每个点进行投票分类"""
     B = pred_label.shape[0]
     N = pred_label.shape[1]
     for b in range(B):
@@ -41,7 +42,6 @@ def add_vote(vote_label_pool, point_idx, pred_label):
 
 def main(data):
     from pyinstrument import Profiler
-
     profiler = Profiler()
     profiler.start()
 
@@ -122,8 +122,8 @@ def main(data):
 
 
 if __name__ == '__main__':
-    filepath = 'PointNet/data/custom/inference/magroll_frame_13610.02ds.npy'
+    # filepath = 'PointNet/data/custom/inference/magroll_frame_13610.02ds.npy'
     # filepath = 'PointNet/data/custom/cup_frame_856_test.npy'
-    # filepath = 'PointNet/data/custom/tissue_roll_frame_739_test.npy'
+    filepath = 'PointNet/data/custom/tissue_roll_frame_739_test.npy'
     data = np.load(filepath)
     main(data)

@@ -16,6 +16,7 @@ from tqdm import tqdm
 import provider
 import numpy as np
 import time
+from tensorboardX import SummaryWriter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -39,7 +40,7 @@ def parse_args():
     parser = argparse.ArgumentParser('Model')
     parser.add_argument('--model', type=str, default='pointnet_sem_seg', help='model name [default: pointnet_sem_seg]')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch Size during training [default: 16]')
-    parser.add_argument('--epoch', default=32, type=int, help='Epoch to run [default: 32]')
+    parser.add_argument('--epoch', default=64, type=int, help='Epoch to run [default: 32]')
     parser.add_argument('--learning_rate', default=0.001, type=float, help='Initial learning rate [default: 0.001]')
     parser.add_argument('--optimizer', type=str, default='Adam', help='Adam or SGD [default: Adam]')
     parser.add_argument('--log_dir', type=str, default=None, help='Log path [default: None]')
@@ -47,7 +48,6 @@ def parse_args():
     parser.add_argument('--npoint', type=int, default=4096, help='Point Number [default: 4096]')
     parser.add_argument('--step_size', type=int, default=10, help='Decay step for lr decay [default: every 10 epochs]')
     parser.add_argument('--lr_decay', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
-    parser.add_argument('--test_area', type=int, default=5, help='Which area to use for test, option: 1-6 [default: 5]')
 
     return parser.parse_args()
 
@@ -94,7 +94,7 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
-    root = 'data/custom'
+    root = 'data/custom/train'
     NUM_CLASSES = len(classes)
     NUM_POINT = args.npoint
     BATCH_SIZE = args.batch_size
@@ -166,6 +166,8 @@ def main(args):
 
     global_epoch = 0
     best_iou = 0
+    writer = SummaryWriter(
+        'runs/Model_{}_Epoch_{}_Lr_{}'.format(args.model, args.epoch, args.learning_rate))
 
     for epoch in range(start_epoch, args.epoch):
         '''Train on chopped scenes'''
@@ -210,6 +212,8 @@ def main(args):
             loss_sum += loss
         log_string('Training mean loss: %f' % (loss_sum / num_batches))
         log_string('Training accuracy: %f' % (total_correct / float(total_seen)))
+        writer.add_scalar('Epoch/Mean loss', (loss_sum / num_batches), epoch)
+        writer.add_scalar('Epoch/Acc', (total_correct / float(total_seen)), epoch)
 
         if epoch % 5 == 0:
             logger.info('Save model...')
@@ -270,11 +274,19 @@ def main(args):
             log_string('eval point avg class acc: %f' % (
                 np.mean(np.array(total_correct_class) / (np.array(total_seen_class, dtype=np.float) + 1e-6))))
 
+            writer.add_scalar('Eval/Mean loss', (loss_sum / float(num_batches)), epoch)
+            writer.add_scalar('Eval/Avg Class IoU', mIoU, epoch)
+            writer.add_scalar('Eval/Acc', (total_correct / float(total_seen)), epoch)
+            writer.add_scalar('Eval/Avg Class Acc', (
+                np.mean(np.array(total_correct_class) / (np.array(total_seen_class, dtype=np.float) + 1e-6))), epoch)
+
             iou_per_class_str = '------- IoU --------\n'
             for l in range(NUM_CLASSES):
                 iou_per_class_str += 'class %s weight: %.3f, IoU: %.3f \n' % (
                     seg_label_to_cat[l] + ' ' * (len(classes) + 1 - len(seg_label_to_cat[l])), labelweights[l - 1],
                     total_correct_class[l] / float(total_iou_deno_class[l]))
+                writer.add_scalar('Eval Class IoU/' + seg_label_to_cat[l],
+                                  total_correct_class[l] / float(total_iou_deno_class[l]), epoch)
 
             log_string(iou_per_class_str)
             log_string('Eval mean loss: %f' % (loss_sum / num_batches))
@@ -294,9 +306,13 @@ def main(args):
                 torch.save(state, savepath)
                 log_string('Saving model....')
             log_string('Best mIoU: %f' % best_iou)
+            writer.add_scalar('Epoch/best IoU', best_iou, epoch)
         global_epoch += 1
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    main(args)
+    models = ["pointnet_sem_seg", "pointnet2_sem_seg", "pointnet2_sem_seg_msg"]
+    for model in models:
+        args = parse_args()
+        args.model = model
+        main(args)
