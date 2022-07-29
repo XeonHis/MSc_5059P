@@ -69,6 +69,7 @@ def pointcloud_visualization(all_data, iou_map):
     print(l, w, h)
 
     o3d.visualization.draw_geometries([whole_scene, bbox])
+    return whole_scene, bbox
 
 
 def pointcloud_rt_visualization(filepath):
@@ -77,6 +78,8 @@ def pointcloud_rt_visualization(filepath):
     import cv2
     from open3d import visualization, geometry, camera, io
     # todo: 加上inference部分
+    from PointNet.inference import main
+
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -94,49 +97,56 @@ def pointcloud_rt_visualization(filepath):
     geom_added = False
 
     while True:
-        # frames = pipeline.wait_for_frames()
-        # frames = align.process(frames)
-        # profile = frames.get_profile()
-        # depth_frame = frames.get_depth_frame()
-        # color_frame = frames.get_color_frame()
-        # if not depth_frame or not color_frame:
-        #     continue
-        #
-        # # Convert images to numpy arrays
-        # depth_image = np.asanyarray(depth_frame.get_data())
-        # color_image = np.asanyarray(color_frame.get_data())
-        #
-        # img_depth = geometry.Image(depth_image)
-        # img_color = geometry.Image(color_image)
-        # # 生成rgbd图片
-        # rgbd = geometry.RGBDImage.create_from_color_and_depth(color=img_color, depth=img_depth,
-        #                                                       depth_trunc=1e10, convert_rgb_to_intensity=False)
-        #
-        # # 获取相机内参
-        # intrinsics = profile.as_video_stream_profile().get_intrinsics()
-        # pinhole_camera_intrinsic = camera.PinholeCameraIntrinsic(
-        #     intrinsics.width, intrinsics.height,
-        #     intrinsics.fx,
-        #     intrinsics.fy, intrinsics.ppx,
-        #     intrinsics.ppy)
-        # pcd = geometry.PointCloud.create_from_rgbd_image(rgbd, pinhole_camera_intrinsic)
-        pcd = io.read_point_cloud(filepath, format='pcd')
-        # pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        frames = pipeline.wait_for_frames()
+        frames = align.process(frames)
+        depth_frame = frames.get_depth_frame()
+        color_frame = frames.get_color_frame()
+        if not depth_frame or not color_frame:
+            continue
+
+        # Convert images to numpy arrays
+        depth_image = np.asanyarray(depth_frame.get_data())
+        color_image = np.asanyarray(color_frame.get_data())
+        cv2.imshow('bgr', color_image)
+
+
+        img_depth = geometry.Image(depth_image)
+        img_color = geometry.Image(color_image)
+        # 生成rgbd图片
+        rgbd = geometry.RGBDImage.create_from_color_and_depth(color=img_color, depth=img_depth,
+                                                              depth_trunc=100, convert_rgb_to_intensity=False)
+
+        pcd = geometry.PointCloud.create_from_rgbd_image(rgbd, camera.PinholeCameraIntrinsic(
+            camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
+        # pcd = io.read_point_cloud(filepath, format='pcd')
+        pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
         pointcloud.points = pcd.points
         pointcloud.colors = pcd.colors
 
+        pointcloud = pointcloud.random_down_sample(0.02)
+
+        A = np.asarray(pointcloud.points)
+        B = np.asarray(pointcloud.colors)
+
+        pcd_ndarray = np.column_stack((A, B))
+
+        data, iou_map = main(pcd_ndarray)
+        whole_scene, bbox = pointcloud_visualization(data, iou_map)
+
+
         if not geom_added:
-            vis.add_geometry(pointcloud)
+            vis.add_geometry(whole_scene)
+            vis.add_geometry(bbox)
             geom_added = True
 
-        vis.update_geometry(pointcloud)
+        vis.update_geometry(whole_scene)
+        vis.update_geometry(bbox)
         vis.poll_events()
         vis.update_renderer()
 
-        # cv2.imshow('bgr', color_image)
-        # key = cv2.waitKey(1)
-        # if key == ord('q'):
-        #     break
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            break
 
     pipeline.stop()
     cv2.destroyAllWindows()
@@ -179,10 +189,6 @@ def get_seg_data(data, iou_map):
 
 if __name__ == '__main__':
     # pointcloud_visualization("PointNet/log/inference_pred.txt")
-    # pointcloud_rt_visualization("PointNet/log/sem_seg/2022-07-24_21-46/visual/button_frame_113_test_pred_ds.pcd")
+    pointcloud_rt_visualization(None)
     # test()
-    import numpy as np
-
-    iou_map = [0.8429003, 0., 0.27847049, 0., 0., 0., 0., 0., 0.]
-    pointcloud_visualization(np.load("test/result.npy"), iou_map)
     pass

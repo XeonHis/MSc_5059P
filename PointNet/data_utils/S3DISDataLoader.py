@@ -1,3 +1,4 @@
+import copy
 import os
 import numpy as np
 
@@ -195,50 +196,35 @@ class InferenceDataset:
         self.block_points = block_points
         self.block_size = block_size
         self.padding = padding
-        # self.filepath = filepath
         self.stride = stride
         self.scene_points_num = []
-        # self.file_list = [filepath]
-
-        self.scene_points_list = []
-        self.semantic_labels_list = []
-        self.room_coord_min, self.room_coord_max = [], []
 
         data = data
+        # xyz坐标
         points = data[:, :3]
-        self.scene_points_list.append(data[:, :6])
-        self.semantic_labels_list.append(data[:, 6])
-        coord_min, coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]
-        self.room_coord_min.append(coord_min), self.room_coord_max.append(coord_max)
-        assert len(self.scene_points_list) == len(self.semantic_labels_list)
+        # 全部的点
+        self.scene_points = data[:, :6]
+        self.coord_min, self.coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]  # 找出坐标的最大以及最小值
 
-        label_weights = np.zeros(9)
-        for seg in self.semantic_labels_list:
-            tmp, _ = np.histogram(seg, range(10))
-            self.scene_points_num.append(seg.shape[0])
-            label_weights += tmp
-        label_weights = label_weights.astype(np.float32)
-        label_weights = label_weights / np.sum(label_weights)
-        self.label_weights = np.power((np.amax(label_weights) / label_weights)+1e-9, 1 / 3.0)
+        self.label_weights = np.ones(9)
 
     def __getitem__(self, index):
-        point_set_ini = self.scene_points_list[index]  # [x,y,z,r,g,b]
-        points = point_set_ini[:, :6]  # [x,y,z,r,g,b]
-        labels = self.semantic_labels_list[index]  # [label]
-        coord_min, coord_max = np.amin(points, axis=0)[:3], np.amax(points, axis=0)[:3]  # 点云坐标的xyz最小（大）值
+
+        points = self.scene_points  # [x,y,z,r,g,b]
         '''根据stride划分出来块的x和y'''
-        grid_x = int(np.ceil(float(coord_max[0] - coord_min[0] - self.block_size) / self.stride) + 1)
-        grid_y = int(np.ceil(float(coord_max[1] - coord_min[1] - self.block_size) / self.stride) + 1)
-        data_room, label_room, sample_weight, index_room = np.array([]), np.array([]), np.array([]), np.array([])
+        grid_x = int(np.ceil(float(self.coord_max[0] - self.coord_min[0] - self.block_size) / self.stride) + 1)
+        grid_y = int(np.ceil(float(self.coord_max[1] - self.coord_min[1] - self.block_size) / self.stride) + 1)
+        data_per_seg, index_per_seg = np.array([]), np.array([])
+        list_data_per_seg, list_index_per_seg = [], []
         '''对每一块进行遍历'''
         for index_y in range(0, grid_y):
             for index_x in range(0, grid_x):
                 '''一个矩形区域'''
-                s_x = coord_min[0] + index_x * self.stride
-                e_x = min(s_x + self.block_size, coord_max[0])
+                s_x = self.coord_min[0] + index_x * self.stride
+                e_x = min(s_x + self.block_size, self.coord_max[0])
                 s_x = e_x - self.block_size
-                s_y = coord_min[1] + index_y * self.stride
-                e_y = min(s_y + self.block_size, coord_max[1])
+                s_y = self.coord_min[1] + index_y * self.stride
+                e_y = min(s_y + self.block_size, self.coord_max[1])
                 s_y = e_y - self.block_size
                 '''查找在当前的矩形内的点'''
                 point_idxes = np.where(
@@ -255,28 +241,29 @@ class InferenceDataset:
                 point_idxes_repeat = np.random.choice(point_idxes, point_size - point_idxes.size, replace=replace)
                 point_idxes = np.concatenate((point_idxes, point_idxes_repeat))
                 np.random.shuffle(point_idxes)
+                # 每次batch里面的data数据, [4096, 6]
                 data_batch = points[point_idxes, :]
                 normalized_xyz = np.zeros((point_size, 3))
                 '''做归一化'''
-                normalized_xyz[:, 0] = data_batch[:, 0] / coord_max[0]
-                normalized_xyz[:, 1] = data_batch[:, 1] / coord_max[1]
-                normalized_xyz[:, 2] = data_batch[:, 2] / coord_max[2]
+                normalized_xyz[:, 0] = data_batch[:, 0] / self.coord_max[0]
+                normalized_xyz[:, 1] = data_batch[:, 1] / self.coord_max[1]
+                normalized_xyz[:, 2] = data_batch[:, 2] / self.coord_max[2]
                 data_batch[:, 0] = data_batch[:, 0] - (s_x + self.block_size / 2.0)
                 data_batch[:, 1] = data_batch[:, 1] - (s_y + self.block_size / 2.0)
+                # color数据归一化到[0,1]
                 data_batch[:, 3:6] /= 255.0
                 data_batch = np.concatenate((data_batch, normalized_xyz), axis=1)
-                label_batch = labels[point_idxes].astype(int)
-                batch_weight = self.label_weights[label_batch]
 
-                data_room = np.vstack([data_room, data_batch]) if data_room.size else data_batch
-                label_room = np.hstack([label_room, label_batch]) if label_room.size else label_batch
-                sample_weight = np.hstack([sample_weight, batch_weight]) if label_room.size else batch_weight
-                index_room = np.hstack([index_room, point_idxes]) if index_room.size else point_idxes
-        data_room = data_room.reshape((-1, self.block_points, data_room.shape[1]))
-        label_room = label_room.reshape((-1, self.block_points))
-        sample_weight = sample_weight.reshape((-1, self.block_points))
-        index_room = index_room.reshape((-1, self.block_points))
-        return data_room, label_room, sample_weight, index_room
+                # data_per_seg = np.vstack([data_per_seg, data_batch]) if data_per_seg.size else data_batch
+                list_data_per_seg += list(data_batch)
+                # index_per_seg = np.hstack([index_per_seg, point_idxes]) if index_per_seg.size else point_idxes
+                list_index_per_seg += list(point_idxes)
+        data_per_seg = np.array(list_data_per_seg)
+        index_per_seg = np.array(list_index_per_seg)
+        data_per_seg = data_per_seg.reshape((-1, self.block_points, data_per_seg.shape[1]))
+        index_per_seg = index_per_seg.reshape((-1, self.block_points))
+
+        return data_per_seg, index_per_seg
 
     def __len__(self):
-        return len(self.scene_points_list)
+        return len(self.scene_points)
